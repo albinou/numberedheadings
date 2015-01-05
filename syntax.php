@@ -68,12 +68,15 @@ class syntax_plugin_numberedheadings extends DokuWiki_Syntax_Plugin {
         $this->Lexer->addSpecialPattern( '{{startlevel>[1-5]}}',
                                          $mode,
                                          'plugin_numberedheadings');
-        if ($this->enabledbydefault) {
-            $regexp = '^[ \t]*={2,6}\s?[^\n]+={2,6}[ \t]*(?=\n)';
-        } else {
-            $regexp = '^[ \t]*={2,6}\s?\-[^\n]+={2,6}[ \t]*(?=\n)';
-        }
-        $this->Lexer->addSpecialPattern( $regexp,
+
+        $this->Lexer->addSpecialPattern( '{{enable_numbering}}',
+                                         $mode,
+                                         'plugin_numberedheadings');
+        $this->Lexer->addSpecialPattern( '{{disable_numbering}}',
+                                         $mode,
+                                         'plugin_numberedheadings');
+
+        $this->Lexer->addSpecialPattern( '^[ \t]*={2,6}\s?[^\n]+={2,6}[ \t]*(?=\n)',
                                          $mode,
                                          'plugin_numberedheadings');
     }
@@ -87,6 +90,22 @@ class syntax_plugin_numberedheadings extends DokuWiki_Syntax_Plugin {
         // obtain the startlevel from the page if defined
         if (preg_match('/{{[a-z]{6,10}>([1-5]+)}}/', $match, $startlevel)) {
             $this->startlevel = $startlevel[1];
+            return true;
+        }
+
+        // enable or disable the numbering if the pages says so
+        if (preg_match('/{{enable_numbering}}/', $match)) {
+            $this->enabledbydefault = 1;
+            return true;
+        }
+        if (preg_match('/{{disable_numbering}}/', $match)) {
+            $this->enabledbydefault = 0;
+            return true;
+        }
+
+        if (!$this->enabledbydefault &&
+            !preg_match('/^[ \t]*={2,}\s?\-/', $match)) {
+            $handler->header($match, $state, $pos);
             return true;
         }
 
