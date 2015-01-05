@@ -14,6 +14,7 @@
  *
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Lars J. Metz <dokuwiki@meistermetz.de>
+ * @author     Albin Kauffmann <albin-dokuwiki@kauff.org>
  */
 
 if(!defined('DOKU_INC')) define('DOKU_INC',realpath(dirname(__FILE__).'/../../').'/');
@@ -25,6 +26,7 @@ class syntax_plugin_numberedheadings extends DokuWiki_Syntax_Plugin {
     // is now set in configuration manager
     var $startlevel = 0; // level to start with numbered headings (default = 2)
     var $tailingdot = 0; // show a tailing dot after numbers (default = 0)
+    var $enabledbydefault = 0; // Enable the numbered headings for all sections
 
     var $levels = array( '======'=>1,
                          '====='=>2,
@@ -42,12 +44,13 @@ class syntax_plugin_numberedheadings extends DokuWiki_Syntax_Plugin {
     function syntax_plugin_numberedheadings() {
         $this->startlevel = $this->getConf('startlevel');
         $this->tailingdot = $this->getConf('tailingdot');
+        $this->enabledbydefault = $this->getConf('enabledbydefault');
     }
 
     function getInfo(){
         return array( 'author' => 'Lars J. Metz',
                       'email'  => 'dokuwiki@meistermetz.de',
-                      'date'   => '2010-05-12',
+                      'date'   => '2015-01-05',
                       'name'   => 'Plugin: Numbered Headings',
                       'desc'   => 'Adds numbered headings to DokuWiki',
                       'url'    => 'http://www.dokuwiki.org/plugin:NumberedHeadings');
@@ -65,7 +68,12 @@ class syntax_plugin_numberedheadings extends DokuWiki_Syntax_Plugin {
         $this->Lexer->addSpecialPattern( '{{startlevel>[1-5]}}',
                                          $mode,
                                          'plugin_numberedheadings');
-        $this->Lexer->addSpecialPattern( '^[ \t]*={2,6}\s?\-[^\n]+={2,6}[ \t]*(?=\n)',
+        if ($this->enabledbydefault) {
+            $regexp = '^[ \t]*={2,6}\s?[^\n]+={2,6}[ \t]*(?=\n)';
+        } else {
+            $regexp = '^[ \t]*={2,6}\s?\-[^\n]+={2,6}[ \t]*(?=\n)';
+        }
+        $this->Lexer->addSpecialPattern( $regexp,
                                          $mode,
                                          'plugin_numberedheadings');
     }
@@ -116,7 +124,12 @@ class syntax_plugin_numberedheadings extends DokuWiki_Syntax_Plugin {
         $headingNumber = ($this->tailingdot) ? $headingNumber : substr($headingNumber,0,-1);
 
         // insert the number...
-        $match = preg_replace('/(={2,}\s?)\-/', '${1}'.$headingNumber, $match);
+        if ($this->enabledbydefault) {
+            $regexp = '/^[ \t]*(={2,}\s?)\-?/';
+        } else {
+            $regexp = '/^[ \t]*(={2,}\s?)\-/';
+        }
+        $match = preg_replace($regexp, '${1}'.$headingNumber.' ', $match);
 
         // ... and return to original behavior
         $handler->header($match, $state, $pos);
