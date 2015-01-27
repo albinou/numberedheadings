@@ -28,12 +28,6 @@ class syntax_plugin_numberedheadings extends DokuWiki_Syntax_Plugin {
     var $tailingdot = 0; // show a tailing dot after numbers (default = 0)
     var $enabledbydefault = 0; // Enable the numbered headings for all sections
 
-    var $levels = array( '======'=>1,
-                         '====='=>2,
-                         '===='=>3,
-                         '==='=>4,
-                         '=='=>5);
-
     var $headingCount =
                  array(  1=>0,
                          2=>0,
@@ -90,28 +84,22 @@ class syntax_plugin_numberedheadings extends DokuWiki_Syntax_Plugin {
         // obtain the startlevel from the page if defined
         if (preg_match('/{{[a-z]{6,10}>([1-5]+)}}/', $match, $startlevel)) {
             $this->startlevel = $startlevel[1];
-            return true;
+            return false;
         }
 
         // enable or disable the numbering if the pages says so
         if (preg_match('/{{enable_numbering}}/', $match)) {
             $this->enabledbydefault = 1;
-            return true;
+            return false;
         }
         if (preg_match('/{{disable_numbering}}/', $match)) {
             $this->enabledbydefault = 0;
-            return true;
-        }
-
-        if (!$this->enabledbydefault &&
-            !preg_match('/^[ \t]*={2,}\s?\-/', $match)) {
-            $handler->header($match, $state, $pos);
-            return true;
+            return false;
         }
 
         // define the level of the heading
-        preg_match('/(={2,})/', $match, $heading);
-        $level = $this->levels[$heading[1]];
+        preg_match('/(={2,6})/', $match, $heading);
+        $level = 7 - strlen($heading[1]);
 
         // obtain the startnumber if defined
         if (preg_match('/#([0-9]+)\s/', $match, $startnumber) && ($startnumber[1]) > 0) {
@@ -143,21 +131,23 @@ class syntax_plugin_numberedheadings extends DokuWiki_Syntax_Plugin {
         $headingNumber = ($this->tailingdot) ? $headingNumber : substr($headingNumber,0,-1);
 
         // insert the number...
-        if ($this->enabledbydefault) {
-            $regexp = '/^[ \t]*(={2,}\s?)\-?/';
-        } else {
-            $regexp = '/^[ \t]*(={2,}\s?)\-/';
+        $regexp = '/^[ \t]*'.$heading[1].'\s?(\-?)\s?(.*)\s?'.$heading[1].'[ \t]*/';
+        if (preg_match($regexp, $match, $match) != 1) {
+            return false;
         }
-        $match = preg_replace($regexp, '${1}'.$headingNumber.' ', $match);
-
-        // ... and return to original behavior
-        $handler->header($match, $state, $pos);
-
-        return true;
+        if ($this->enabledbydefault || ($match[1] == '-')) {
+            return array($level, $headingNumber.' '.$match[2]);
+        } else {
+            return array($level, $match[2]);
+        }
     }
 
     function render($format, &$renderer, $data) {
-        //do nothing (already done by original render-method)
+        if ($format == 'xhtml') {
+            $renderer->header($data[1], $data[0], $data[0]);
+            return true;
+        }
+        return false;
     }
 }
 //Setup VIM: ex: et ts=4 enc=utf-8 :
