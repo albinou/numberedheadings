@@ -55,18 +55,18 @@ class syntax_plugin_numberedheadings extends DokuWiki_Syntax_Plugin {
     }
 
     function connectTo($mode) {
-        $this->Lexer->addSpecialPattern( '{{header>[1-5]}}',
+        $this->Lexer->addSpecialPattern( '^{{header>[1-5]}}(?=\n)',
                                          $mode,
                                          'plugin_numberedheadings');
         // added new parameter (matches the parameter name for better recognition)
-        $this->Lexer->addSpecialPattern( '{{startlevel>[1-5]}}',
+        $this->Lexer->addSpecialPattern( '^{{startlevel>[1-5]}}(?=\n)',
                                          $mode,
                                          'plugin_numberedheadings');
 
-        $this->Lexer->addSpecialPattern( '{{enable_numbering}}',
+        $this->Lexer->addSpecialPattern( '^{{enable_numbering}}(?=\n)',
                                          $mode,
                                          'plugin_numberedheadings');
-        $this->Lexer->addSpecialPattern( '{{disable_numbering}}',
+        $this->Lexer->addSpecialPattern( '^{{disable_numbering}}(?=\n)',
                                          $mode,
                                          'plugin_numberedheadings');
 
@@ -84,17 +84,17 @@ class syntax_plugin_numberedheadings extends DokuWiki_Syntax_Plugin {
         // obtain the startlevel from the page if defined
         if (preg_match('/{{[a-z]{6,10}>([1-5]+)}}/', $match, $startlevel)) {
             $this->startlevel = $startlevel[1];
-            return false;
+            return array(0, $match);
         }
 
         // enable or disable the numbering if the pages says so
         if (preg_match('/{{enable_numbering}}/', $match)) {
             $this->enabledbydefault = 1;
-            return false;
+            return array(0, $match);
         }
         if (preg_match('/{{disable_numbering}}/', $match)) {
             $this->enabledbydefault = 0;
-            return false;
+            return array(0, $match);
         }
 
         // define the level of the heading
@@ -144,7 +144,9 @@ class syntax_plugin_numberedheadings extends DokuWiki_Syntax_Plugin {
 
     function render($format, &$renderer, $data) {
         if ($format == 'xhtml') {
-            $renderer->header($data[1], $data[0], $data[0]);
+            if ($data[0] > 0) {
+                $renderer->header($data[1], $data[0], $data[0]);
+            }
             return true;
         }
         return false;
